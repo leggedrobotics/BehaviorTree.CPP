@@ -7,6 +7,10 @@
 [![LGTM Grade](https://img.shields.io/lgtm/grade/cpp/github/BehaviorTree/BehaviorTree.CPP)](https://lgtm.com/projects/g/BehaviorTree/BehaviorTree.CPP/context:cpp)
 [![Join the chat at https://gitter.im/BehaviorTree-ROS/Lobby](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/BehaviorTree-ROS/Lobby?utm_source=badge&utm_medium=badge&utm_content=badge)
 
+## RSL - Build Status
+
+[![Build Status](https://ci.leggedrobotics.com/buildStatus/icon?job=github_leggedrobotics/BehaviorTree.CPP/master)](https://ci.leggedrobotics.com/job/github_leggedrobotics/job/BehaviorTree.CPP/job/master/)
+
 # BehaviorTree.CPP
 
 <p align="center"><img src="docs/images/ReadTheDocs.png"></p>
