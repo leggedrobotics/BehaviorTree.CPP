@@ -29,9 +29,9 @@ static const char* xml_text = R"(
             <Inverter>
                 <Condition ID="IsDoorOpen"/>
             </Inverter>
-            <RetryUntilSuccesful num_attempts="4">
+            <RetryUntilSuccessful num_attempts="4">
                 <OpenDoor/>
-            </RetryUntilSuccesful>
+            </RetryUntilSuccessful>
             <PassThroughDoor/>
         </Sequence>
     </BehaviorTree>
@@ -61,7 +61,9 @@ int main(int argc, char** argv)
 {
     BT::BehaviorTreeFactory factory;
 
-    // register all the actions into the factory
+    // Register our custom nodes into the factory.
+    // Any default nodes provided by the BT library (such as Fallback) are registered by
+    // default in the BehaviorTreeFactory.
     CrossDoor::RegisterNodes(factory);
 
     // Important: when the object tree goes out of scope, all the TreeNodes are destroyed
@@ -85,6 +87,7 @@ int main(int argc, char** argv)
 
     const bool LOOP = ( argc == 2 && strcmp( argv[1], "loop") == 0);
 
+    using std::chrono::milliseconds;
     do
     {
         NodeStatus status = NodeStatus::RUNNING;
@@ -92,9 +95,16 @@ int main(int argc, char** argv)
         while( status == NodeStatus::RUNNING)
         {
             status = tree.tickRoot();
-            CrossDoor::SleepMS(1);   // optional sleep to avoid "busy loops"
+            // IMPORTANT: you must always add some sleep if you call tickRoot()
+            // in a loop, to avoid using 100% of your CPU (busy loop).
+            // The method Tree::sleep() is recommended, because it can be
+            // interrupted by an internal event inside the tree.
+            tree.sleep( milliseconds(10) );
         }
-        CrossDoor::SleepMS(1000);
+        if( LOOP )
+        {
+            std::this_thread::sleep_for( milliseconds(1000) );
+        }
     }
     while(LOOP);
 

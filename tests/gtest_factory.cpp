@@ -2,6 +2,7 @@
 #include "action_test_node.h"
 #include "condition_test_node.h"
 #include "behaviortree_cpp_v3/xml_parsing.h"
+#include "environment.h"
 #include "../sample_nodes/crossdoor_nodes.h"
 #include "../sample_nodes/dummy_nodes.h"
 
@@ -71,7 +72,64 @@ static const char* xml_text_subtree = R"(
 
 </root>  )";
 
+static const char* xml_text_subtree_part1 = R"(
+
+<root>
+  <BehaviorTree ID="MainTree">
+    <Fallback name="root_selector">
+      <SubTree ID="CrossDoorSubtree" />
+      <Action ID="PassThroughWindow" />
+    </Fallback>
+  </BehaviorTree>
+</root>  )";
+
+static const char* xml_text_subtree_part2 = R"(
+
+<root>
+  <BehaviorTree ID="CrossDoorSubtree">
+    <Sequence name="door_sequence">
+      <Decorator ID="Inverter">
+        <Action ID="IsDoorLocked" />
+      </Decorator>
+      <Action ID="OpenDoor" />
+      <Action ID="PassThroughDoor" />
+      <Action ID="CloseDoor" />
+    </Sequence>
+  </BehaviorTree>
+</root>  )";
+
 // clang-format on
+
+
+TEST(BehaviorTreeFactory, XMLParsingOrder)
+{
+    BehaviorTreeFactory factory;
+    CrossDoor::RegisterNodes(factory);
+
+    {
+        XMLParser parser(factory);
+        parser.loadFromText(xml_text_subtree);
+        auto trees = parser.registeredBehaviorTrees();
+        ASSERT_EQ(trees[0], "CrossDoorSubtree");
+        ASSERT_EQ(trees[1], "MainTree");
+    }
+    {
+        XMLParser parser(factory);
+        parser.loadFromText(xml_text_subtree_part1);
+        parser.loadFromText(xml_text_subtree_part2);
+        auto trees = parser.registeredBehaviorTrees();
+        ASSERT_EQ(trees[0], "CrossDoorSubtree");
+        ASSERT_EQ(trees[1], "MainTree");
+    }
+    {
+        XMLParser parser(factory);
+        parser.loadFromText(xml_text_subtree_part2);
+        parser.loadFromText(xml_text_subtree_part1);
+        auto trees = parser.registeredBehaviorTrees();
+        ASSERT_EQ(trees[0], "CrossDoorSubtree");
+        ASSERT_EQ(trees[1], "MainTree");
+    }
+}
 
 TEST(BehaviorTreeFactory, VerifyLargeTree)
 {
@@ -113,6 +171,8 @@ TEST(BehaviorTreeFactory, VerifyLargeTree)
 
     ASSERT_EQ(decorator->child()->name(), "IsDoorOpen");
 }
+
+
 
 TEST(BehaviorTreeFactory, Subtree)
 {
@@ -244,3 +304,58 @@ TEST(BehaviorTreeFactory, SubTreeWithRemapping)
     ASSERT_FALSE( talk_bb->getAny("talk_out") );
 }
 
+#if !defined(USING_ROS) && !defined(USING_ROS2)
+TEST(BehaviorTreeFactory, CreateTreeFromFile)
+{
+    BehaviorTreeFactory factory;
+    
+    // should not throw
+    Tree tree = factory.createTreeFromFile((environment->executable_path.parent_path() / "trees/parent_no_include.xml").str());
+    ASSERT_EQ(NodeStatus::SUCCESS, tree.tickRoot());
+}
+
+TEST(BehaviorTreeFactory, CreateTreeFromFileWhichIncludesFileFromSameDirectory)
+{
+    BehaviorTreeFactory factory;
+    
+    // should not throw
+    Tree tree = factory.createTreeFromFile((environment->executable_path.parent_path() / "trees/child/child_include_sibling.xml").str());
+    ASSERT_EQ(NodeStatus::SUCCESS, tree.tickRoot());
+}
+
+TEST(BehaviorTreeFactory, CreateTreeFromFileWhichIncludesFileFromChildDirectory)
+{
+    BehaviorTreeFactory factory;
+    
+    // should not throw
+    Tree tree = factory.createTreeFromFile((environment->executable_path.parent_path() / "trees/parent_include_child.xml").str());
+    ASSERT_EQ(NodeStatus::SUCCESS, tree.tickRoot());
+}
+
+TEST(BehaviorTreeFactory, CreateTreeFromFileWhichIncludesFileFromChildDirectoryWhichIncludesFileFromSameDirectory)
+{
+    BehaviorTreeFactory factory;
+    
+    // should not throw
+    Tree tree = factory.createTreeFromFile((environment->executable_path.parent_path() / "trees/parent_include_child_include_sibling.xml").str());
+    ASSERT_EQ(NodeStatus::SUCCESS, tree.tickRoot());
+}
+
+TEST(BehaviorTreeFactory, CreateTreeFromFileWhichIncludesFileFromChildDirectoryWhichIncludesFileFromChildDirectory)
+{
+    BehaviorTreeFactory factory;
+    
+    // should not throw
+    Tree tree = factory.createTreeFromFile((environment->executable_path.parent_path() / "trees/parent_include_child_include_child.xml").str());
+    ASSERT_EQ(NodeStatus::SUCCESS, tree.tickRoot());
+}
+
+TEST(BehaviorTreeFactory, CreateTreeFromFileWhichIncludesFileFromChildDirectoryWhichIncludesFileFromParentDirectory)
+{
+    BehaviorTreeFactory factory;
+    
+    // should not throw
+    Tree tree = factory.createTreeFromFile((environment->executable_path.parent_path() / "trees/parent_include_child_include_parent.xml").str());
+    ASSERT_EQ(NodeStatus::SUCCESS, tree.tickRoot());
+}
+#endif

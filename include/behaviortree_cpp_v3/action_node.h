@@ -17,6 +17,8 @@
 #include <atomic>
 #include <thread>
 #include <future>
+#include <mutex>
+
 #include "leaf_node.h"
 
 namespace BT
@@ -111,6 +113,9 @@ class SimpleActionNode : public SyncActionNode
  * - remember, with few exceptions, a halted AsyncAction must return NodeStatus::IDLE.
  *
  * For a complete example, look at __AsyncActionTest__ in action_test_node.h in the folder test.
+ *
+ * NOTE: when the thread is completed, i.e. the tick() returns its status,
+ * a TreeNode::emitStateChanged() will be called.
  */
 class AsyncActionNode : public ActionNodeBase
 {
@@ -134,12 +139,13 @@ class AsyncActionNode : public ActionNodeBase
 
     std::exception_ptr exptr_;
     std::atomic_bool halt_requested_;
-    std::future<NodeStatus> thread_handle_;
+    std::future<void> thread_handle_;
+    std::mutex m_;
 };
 
 /**
- * @brief The ActionNode is the goto option for,
- * but it is actually much easier to use correctly.
+ * @brief The ActionNode is the prefered way to implement asynchronous Actions.
+ * It is actually easier to use correctly, when compared with AsyncAction
  *
  * It is particularly useful when your code contains a request-reply pattern,
  * i.e. when the actions sends an asychronous request, then checks periodically
@@ -180,9 +186,8 @@ class StatefulActionNode : public ActionNodeBase
 #ifndef BT_NO_COROUTINES
 
 /**
- * @brief The CoroActionNode class is an ideal candidate for asynchronous actions
- * which need to communicate with an external service using an asynch request/reply interface
- * (being notable examples ActionLib in ROS, MoveIt clients or move_base clients).
+ * @brief The CoroActionNode class is an a good candidate for asynchronous actions
+ * which need to communicate with an external service using an asynch request/reply interface.
  *
  * It is up to the user to decide when to suspend execution of the Action and resume
  * the parent node, invoking the method setStatusRunningAndYield().

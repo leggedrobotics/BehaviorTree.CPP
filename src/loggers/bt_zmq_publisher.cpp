@@ -79,7 +79,7 @@ PublisherZMQ::PublisherZMQ(const BT::Tree& tree,
                 {
                     std::cout << "[PublisherZMQ] Server quitting." << std::endl;
                 }
-                std::cout << "[PublisherZMQ] just died. Exeption " << err.what() << std::endl;
+                std::cout << "[PublisherZMQ] just died. Exception " << err.what() << std::endl;
                 active_server_ = false;
             }
         }
@@ -91,12 +91,12 @@ PublisherZMQ::PublisherZMQ(const BT::Tree& tree,
 PublisherZMQ::~PublisherZMQ()
 {
     active_server_ = false;
-    zmq_->context.shutdown();
     if (thread_.joinable())
     {
         thread_.join();
     }
     flush();
+    zmq_->context.shutdown();
     delete zmq_;
     ref_count = false;
 }
@@ -176,7 +176,7 @@ void PublisherZMQ::flush()
         {
             std::cout << "[PublisherZMQ] Publisher quitting." << std::endl;
         }
-        std::cout << "[PublisherZMQ] just died. Exeption " << err.what() << std::endl;
+        std::cout << "[PublisherZMQ] just died. Exception " << err.what() << std::endl;
     }
     
     send_pending_ = false;
